@@ -69,28 +69,17 @@ def getContributions():
 
 # Draw border around the LED board
 def draw_border():
+    display.set_pen(display.create_pen(0, 0, 40))  # White color for the border
     for x in range(width):
-        display.set_pen(display.create_pen(*(0, 0, 40)))
-        display.pixel(x, 0)
-        display.pixel(x, height - 1)
-        display.set_pen(display.create_pen(*(20, 20, 20)))
-        display.pixel(x, height - 2)
-    
-    for x in range(width - 1):
-        display.set_pen(display.create_pen(*(20, 20, 20)))
-        display.pixel(x + 9, height - 3)
-
-    for y in range(height):
-        display.set_pen(display.create_pen(*(0, 0, 40)))
-        display.pixel(0, y)
-        display.pixel(width - 1, y)
+        display.pixel(x, 0)            # Top row
+        display.pixel(x, 1)            # Second row from top
+        display.pixel(x, height - 1)   # Bottom row
+        display.pixel(x, height - 2)   # Second row from bottom
 
 # Draw contribution graph on LED board
 def draw_contribution_graph(contributions):
     display.set_backlight(1.0)
     display.clear()
-    effective_width = width - 2
-    effective_height = height - 2
 
     total_days = 365
     normalized_contributions = [0] * total_days
@@ -98,9 +87,9 @@ def draw_contribution_graph(contributions):
         normalized_contributions[i] = count
 
     r, g, b = 0, 0, 0
-    for x in range(effective_width):
-        for y in range(effective_height):
-            index = y * effective_width + x
+    for x in range(width):
+        for y in range(2, height - 2):
+            index = (y - 2) * (width - 2) + x
             if index < len(normalized_contributions):
                 count = normalized_contributions[index]
                 if count == 0:
@@ -119,7 +108,7 @@ def draw_contribution_graph(contributions):
                     r, g, b = 64, 5, 37  # Darker Deep Pink
 
                 display.set_pen(display.create_pen(r, g, b))
-                display.pixel(x + 1, y + 1)
+                display.pixel(x, y)
 
     draw_border()
     gu.update(display)
@@ -133,31 +122,29 @@ def main():
         return
     
     while True:
-        if gu.is_pressed(GalacticUnicorn.SWITCH_A):
-            try:
-                print("Getting contributions")
-                data = getContributions().get('data', {})
-                contributions = data.get('user', {}).get('contributionsCollection', {}).get('contributionCalendar', {})
-                weeks = contributions.get('weeks', [])
-                
-                daily_contributions = [0] * 365
-                day_index = 0
-                
-                for week in weeks:
-                    for day in week.get('contributionDays', []):
-                        if day_index < len(daily_contributions):
-                            daily_contributions[day_index] = day['contributionCount']
-                        day_index += 1
-                
-                # print(f"Total Contributions: {contributions.get('totalContributions', 0)}")
-                # for day in daily_contributions:
-                #     print(f"Contributions: {day}")
-                
-                print("Drawing graph")
-                draw_contribution_graph(daily_contributions)
+        # if gu.is_pressed(GalacticUnicorn.SWITCH_A):
+        try:
+            print("Getting contributions")
+            data = getContributions().get('data', {})
+            contributions = data.get('user', {}).get('contributionsCollection', {}).get('contributionCalendar', {})
+            weeks = contributions.get('weeks', [])
             
-            except Exception as e:
-                print(f"Failed to get or display contributions: {e}")
+            daily_contributions = [0] * 365
+            day_index = 0
+            
+            for week in weeks:
+                for day in week.get('contributionDays', []):
+                    if day_index < len(daily_contributions):
+                        daily_contributions[day_index] = day['contributionCount']
+                    day_index += 1
+            
+            print("Drawing graph")
+            draw_contribution_graph(daily_contributions)
+        
+        except Exception as e:
+            print(f"Failed to get or display contributions: {e}")
+
+        time.sleep(3600)
 
 if __name__ == "__main__":
     main()
